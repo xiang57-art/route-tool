@@ -12,7 +12,7 @@
       color: #222;
     }
     .box {
-      max-width: 720px;
+      max-width: 760px;
       margin: 0 auto;
       background: white;
       padding: 16px;
@@ -83,18 +83,21 @@
     <label for="lon">起點經度</label>
     <input id="lon" type="text" value="140.63527354931148">
 
-    <label for="radius">半徑</label>
+    <label for="radius">基礎半徑</label>
     <input id="radius" type="text" value="0.0015">
 
     <label for="points">點數</label>
-    <input id="points" type="number" value="60">
+    <input id="points" type="number" value="80">
+
+    <label for="roughness">自然程度（建議 0.15 ~ 0.35）</label>
+    <input id="roughness" type="text" value="0.22">
 
     <button class="primary" onclick="generateRoute()">生成路線</button>
     <button class="secondary" onclick="downloadGPX()">下載 route.gpx</button>
     <button class="secondary" onclick="downloadTXT()">下載 route_coordinates.txt</button>
 
     <div class="small">
-      先按「生成路線」，再按下載。
+      先按「生成路線」，下面會出現座標。
     </div>
 
     <textarea id="output" placeholder="這裡會顯示座標清單"></textarea>
@@ -103,18 +106,39 @@
   <script>
     let route = [];
 
+    function randBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
     function generateRoute() {
       const startLat = parseFloat(document.getElementById("lat").value);
       const startLon = parseFloat(document.getElementById("lon").value);
-      const radius = parseFloat(document.getElementById("radius").value);
+      const baseRadius = parseFloat(document.getElementById("radius").value);
       const points = parseInt(document.getElementById("points").value, 10);
+      const roughness = parseFloat(document.getElementById("roughness").value);
 
       route = [];
 
+      const phase1 = randBetween(0, Math.PI * 2);
+      const phase2 = randBetween(0, Math.PI * 2);
+      const phase3 = randBetween(0, Math.PI * 2);
+
       for (let i = 0; i < points; i++) {
         const angle = 2 * Math.PI * i / points;
-        const lat = startLat + radius * Math.cos(angle);
-        const lon = startLon + radius * Math.sin(angle);
+
+        const wave1 = Math.sin(angle * 2 + phase1) * roughness;
+        const wave2 = Math.sin(angle * 3 + phase2) * roughness * 0.6;
+        const wave3 = Math.sin(angle * 5 + phase3) * roughness * 0.35;
+
+        const factor = 1 + wave1 + wave2 + wave3;
+        const radius = baseRadius * factor;
+
+        const latJitter = randBetween(-0.000015, 0.000015);
+        const lonJitter = randBetween(-0.000015, 0.000015);
+
+        const lat = startLat + radius * Math.cos(angle) + latJitter;
+        const lon = startLon + radius * Math.sin(angle) + lonJitter;
+
         route.push([lat, lon]);
       }
 
